@@ -44,6 +44,36 @@ window.addEventListener('mouseup', () => { isDragging = false; });
 window.addEventListener('touchend', () => { isDragging = false; });
 
 
+// --- НОВЕ: Перемикач 2D / 3D ---
+document.getElementById('toggle-3d').addEventListener('change', (e) => {
+    const is3D = e.target.checked;
+    
+    // Ховаємо або показуємо поля вводу Z
+    document.querySelectorAll('.z-input').forEach(el => {
+        el.style.display = is3D ? 'inline' : 'none';
+    });
+
+    // Ховаємо або показуємо вісь Z на сцені
+    document.getElementById('z-axis-group').setAttribute('visible', is3D);
+
+    if (!is3D) {
+        // Якщо 2D, обнуляємо координати Z
+        document.getElementById('az').value = 0;
+        document.getElementById('bz').value = 0;
+        
+        // Вирівнюємо камеру площинно
+        currentRotationY = 0;
+    } else {
+        // Повертаємо кут огляду для 3D
+        currentRotationY = 35;
+    }
+    
+    rotator.setAttribute('rotation', `0 ${currentRotationY} 0`);
+    clearScene();
+    document.getElementById('result-output').innerHTML = 'Оберіть дію';
+});
+
+
 // Математична логіка
 function getVector(prefix) {
     return {
@@ -122,7 +152,7 @@ document.getElementById('btn-sub').addEventListener('click', () => {
     drawVector(c, '#00cec9', 'c', true);
 });
 
-// Скалярний добуток
+// Скалярний добуток (ОНОВЛЕНО З ПРОЄКЦІЄЮ)
 document.getElementById('btn-dot').addEventListener('click', () => {
     const a = getVector('a');
     const b = getVector('b');
@@ -133,4 +163,22 @@ document.getElementById('btn-dot').addEventListener('click', () => {
     clearScene();
     drawVector(a, '#f1c40f', 'a');
     drawVector(b, '#9b59b6', 'b');
+
+    // Обчислення проєкції вектора A на вектор B
+    const magBSq = (b.x * b.x) + (b.y * b.y) + (b.z * b.z);
+    
+    if (magBSq !== 0) {
+        const scalarProj = dotProduct / magBSq;
+        const projPoint = { x: scalarProj * b.x, y: scalarProj * b.y, z: scalarProj * b.z };
+
+        const container = document.getElementById('vectors-container');
+
+        // Малюємо перпендикуляр від кінця A до прямої B (світло-сіра лінія)
+        const prepLine = document.createElement('a-entity');
+        prepLine.setAttribute('line', `start: ${a.x} ${a.y} ${a.z}; end: ${projPoint.x} ${projPoint.y} ${projPoint.z}; color: #bdc3c7; width: 2`);
+        container.appendChild(prepLine);
+
+        // Малюємо вектор проєкції (оранжевим кольором)
+        drawVector(projPoint, '#e67e22', 'pr_b(a)', true);
+    }
 });
